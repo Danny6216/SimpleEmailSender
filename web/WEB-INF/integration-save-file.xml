@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:int-file="http://www.springframework.org/schema/integration/file"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/integration
+       http://www.springframework.org/schema/integration/spring-integration.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/integration/file
+       http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+">
+    <context:property-placeholder location="WEB-INF/mail.properties"/>
+    <context:component-scan base-package="com.spring.mailSender"/>
+    <bean id="helloService" class="com.spring.mailSender.Service"/>
+    <int:channel id="inputChannel"/>
+    <int:channel id="errorChannel"/>
+    <int:channel id="rabbitChannel"/>
+
+
+    <int-file:inbound-channel-adapter
+            id="adapter"
+            directory="${mail.in.dir}"
+            filename-pattern="*.txt"
+            channel="inputChannel"
+            prevent-duplicates="true">
+        <int:poller max-messages-per-poll="10" fixed-rate="1000"/>
+    </int-file:inbound-channel-adapter>
+
+    <int-file:inbound-channel-adapter
+            id="rabbitAdapter"
+            directory="${rabbit.in.dir}"
+            filename-pattern="*.txt"
+            channel="rabbitChannel"
+            prevent-duplicates="true">
+        <int:poller max-messages-per-poll="10" fixed-rate="1000"/>
+    </int-file:inbound-channel-adapter>
+
+    <int:chain input-channel="inputChannel" output-channel="nullChannel">
+        <int:service-activator
+                ref="helloService"
+                method="sendFile"
+        />
+    </int:chain>
+</beans>
